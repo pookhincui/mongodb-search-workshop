@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>From Keywords to Meaning — Search Demo</title>
+<style>
+  :root{
+    --ink:#0E1420; --paper:#F5F7F5;
+    --kw-panel:#EEF0F1; --kw-line:#6B7280;
+    --sem:#12B24A; --sem-dark:#0A7A34; --sem-soft:#E4F7EA;
+    --hl:#FFB020;
+    --font:"Sukhumvit Set","Leelawadee UI","Noto Sans Thai",Tahoma,-apple-system,"Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:var(--font); color:var(--ink); background:var(--paper);
+    min-height:100dvh; padding:clamp(12px,2.5vw,28px);
+    line-height:1.45;
+  }
+  .wrap{max-width:1180px; margin:0 auto}
+  header h1{font-size:clamp(22px,3.4vw,38px); margin:0 0 4px; letter-spacing:-.01em}
+  header p{margin:0 0 14px; color:#3a4457; font-size:clamp(14px,1.6vw,18px)}
+  .brandnote{font-size:12px; color:#8a93a3}
+  .searchbar{display:flex; align-items:center; gap:10px; background:#fff;
+    border:2px solid #cfd6dd; border-radius:14px; padding:10px 14px;
+    box-shadow:0 1px 3px rgba(0,0,0,.05)}
+  .searchbar:focus-within{border-color:var(--sem)}
+  .searchbar .ico{font-size:20px; line-height:1}
+  #q{flex:1; border:0; outline:0; font-family:inherit; color:var(--ink);
+    font-size:18px; background:transparent}
+  #q::placeholder{color:#9aa3b2}
+  .chips{display:flex; flex-wrap:wrap; gap:10px; margin:12px 0 6px}
+  .chip{min-height:44px; padding:8px 16px; border-radius:999px; cursor:pointer;
+    border:1.5px solid #cfd6dd; background:#fff; color:var(--ink);
+    font-family:inherit; font-size:15px; display:inline-flex; align-items:center;
+    transition:transform .08s ease, background .12s ease, border-color .12s}
+  .chip:hover{border-color:var(--sem)}
+  .chip:active{transform:scale(.96)}
+  .chip.active{background:var(--sem-soft); border-color:var(--sem); color:var(--sem-dark); font-weight:600}
+  .board{display:flex; flex-wrap:wrap; gap:14px; align-items:stretch; margin:14px 0 18px}
+  .score{flex:1; min-width:150px; border-radius:14px; padding:12px 16px; border:2px solid}
+  .score .lab{font-size:14px; opacity:.85}
+  .score .num{font-size:clamp(30px,5vw,48px); font-weight:800; line-height:1}
+  .score.kw{background:var(--kw-panel); border-color:#d4d9de; color:var(--kw-line)}
+  .score.sem{background:var(--sem-soft); border-color:var(--sem); color:var(--sem-dark)}
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:16px}
+  .panel{border-radius:16px; padding:16px; border:2px solid; min-height:180px}
+  .panel.kw{background:var(--kw-panel); border-color:#d4d9de}
+  .panel.sem{background:#fff; border-color:var(--sem)}
+  .panel h2{margin:0 0 2px; font-size:clamp(18px,2.2vw,24px)}
+  .panel.kw h2{color:var(--kw-line)}
+  .panel.sem h2{color:var(--sem-dark)}
+  .panel .sub{margin:0 0 12px; font-size:13px; color:#6b7280}
+  .concepts{display:flex; flex-wrap:wrap; gap:8px; margin:0 0 12px}
+  .cbadge{background:var(--sem); color:#fff; border-radius:999px; padding:5px 12px;
+    font-size:14px; font-weight:600}
+  .cbadge.head{background:var(--sem-dark)}
+  .result{background:#fff; border:1px solid #e4e8ec; border-radius:12px;
+    padding:12px 14px; margin-bottom:10px}
+  .panel.kw .result{border-color:#dbe0e5}
+  .result .rtitle{font-size:16px; font-weight:700; margin:0 0 4px}
+  .result .rsnip{font-size:15px; color:#3a4457; margin:0}
+  .result .rtag{margin-top:8px; font-size:13px; color:var(--sem-dark); font-weight:600}
+  .result .rtag .dot{color:var(--sem)}
+  mark{background:var(--hl); color:#3d2b00; border-radius:4px; padding:0 2px}
+  .empty{border:2px dashed #b9c0c8; border-radius:12px; padding:20px 16px;
+    text-align:center; color:#6b7280; font-size:15px; background:#fafbfc}
+  .empty .big{font-size:34px; display:block; margin-bottom:6px}
+  .reveal{animation:reveal .28s ease both}
+  @keyframes reveal{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
+  @media (max-width:820px){
+    .grid{grid-template-columns:1fr}
+    #q{font-size:16px}
+    .result .rtitle{font-size:16px}
+    body{padding:12px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .reveal{animation:none}
+    .chip{transition:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>จาก Keyword สู่ความหมาย 🔎</h1>
+    <p>พิมพ์คำค้นเดียว เทียบ <b>Keyword (จับตัวอักษร)</b> กับ <b>Semantic (เข้าใจความหมาย)</b> พร้อมกัน</p>
+    <span class="brandnote">* Demo dataset เพื่อการสาธิตเท่านั้น — ไม่ใช่ข้อมูล/แบรนด์จริง</span>
+  </header>
+
+  <div class="searchbar">
+    <span class="ico" aria-hidden="true">🔎</span>
+    <input id="q" type="search" inputmode="search" enterkeyhint="search"
+      autocomplete="off" autocapitalize="off" spellcheck="false"
+      placeholder="ลองพิมพ์คำถามของคุณ เช่น เล่นเฟสไม่ได้">
+  </div>
+
+  <div class="chips" id="chips" aria-label="ตัวอย่างคำค้น"></div>
+
+  <div class="board">
+    <div class="score kw">
+      <div class="lab">Keyword เจอ</div>
+      <div class="num" id="scoreKw">0</div>
+    </div>
+    <div class="score sem">
+      <div class="lab">AI Semantic เจอ</div>
+      <div class="num" id="scoreSem">0</div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <section class="panel kw" aria-label="ผลการค้นแบบ Keyword">
+      <h2>Keyword Search</h2>
+      <p class="sub">จับคู่เฉพาะตัวอักษรที่ตรงกันเป๊ะ</p>
+      <div id="kwResults"></div>
+    </section>
+    <section class="panel sem" aria-label="ผลการค้นแบบ Semantic">
+      <h2>Semantic Search (AI)</h2>
+      <p class="sub">เข้าใจความหมายเบื้องหลังคำถาม</p>
+      <div id="semConcepts" class="concepts"></div>
+      <div id="semResults"></div>
+    </section>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+const DOCUMENTS = [
+  { id:"topup",       title:"ซื้อแพ็กเกจเน็ตเสริมเมื่อเน็ตหมด",
+    snippet:"เมื่อเน็ตหมดกลางรอบบิล ซื้อแพ็กเกจเน็ตเสริมเพิ่มได้ทันทีผ่านแอป",
+    kw:["แพ็กเกจ","เน็ต","เสริม","ซื้อ"], concepts:["data_pkg"] },
+  { id:"social_fix",  title:"แก้ปัญหาเข้าแอปโซเชียลหรือเล่นแอปไม่ได้",
+    snippet:"เปิดแอปโซเชียลไม่ขึ้น เล่นแอปไม่ได้ ลองตรวจการตั้งค่าเน็ตและสัญญาณ",
+    kw:["โซเชียล","แอป","แก้ปัญหา"], concepts:["social_app","apn"] },
+  { id:"bill",        title:"เช็กยอดค่าบริการและดูใบแจ้งหนี้",
+    snippet:"ดูยอดค่าบริการรอบปัจจุบัน ประวัติการใช้ และใบแจ้งหนี้ย้อนหลัง",
+    kw:["ยอด","ค่าบริการ","บิล","ใบแจ้งหนี้","เช็ก"], concepts:["bill"] },
+  { id:"signal",      title:"แก้ปัญหาสัญญาณขาดหายและโทรไม่ติด",
+    snippet:"สัญญาณอ่อน โทรออกไม่ได้ สายหลุดบ่อย ลองรีสตาร์ทและตรวจพื้นที่",
+    kw:["สัญญาณ","โทร","แก้ปัญหา"], concepts:["signal"] },
+  { id:"fiveg",       title:"วิธีเปิดใช้งาน 5G บนมือถือ",
+    snippet:"ตรวจว่าเครื่องรองรับ 5G และเปิดใช้งานในการตั้งค่าเครือข่าย",
+    kw:["5g","เปิด","มือถือ"], concepts:["fiveg","data_pkg"] },
+  { id:"mnp",         title:"ย้ายค่ายมา AIS โดยใช้เบอร์เดิม",
+    snippet:"ย้ายเครือข่ายมา AIS ใช้เบอร์เดิมได้ ไม่ต้องเปลี่ยนเบอร์",
+    kw:["ย้ายค่าย","เบอร์เดิม","ais","ย้าย"], concepts:["mnp"] },
+  { id:"topup_money", title:"เติมเงินและจ่ายบิลออนไลน์",
+    snippet:"เติมเงินเข้าเบอร์และชำระค่าบริการออนไลน์ผ่านหลายช่องทาง",
+    kw:["เติมเงิน","จ่าย","บิล","ชำระ"], concepts:["topup_money","bill"] },
+  { id:"points",      title:"ใช้ AIS Points แลกของรางวัลและสิทธิพิเศษ",
+    snippet:"สะสมและใช้พอยท์แลกส่วนลด ของรางวัล และสิทธิพิเศษ",
+    kw:["points","แลก","รางวัล","สิทธิพิเศษ","พอยท์"], concepts:["points"] },
+  { id:"apn",         title:"ตั้งค่าอินเทอร์เน็ตมือถือ (APN)",
+    snippet:"เน็ตมือถือใช้ไม่ได้หลังเปลี่ยนเครื่อง ตั้งค่า APN ให้ถูกต้อง",
+    kw:["ตั้งค่า","อินเทอร์เน็ต","apn","มือถือ"], concepts:["apn","data_pkg"] },
+  { id:"unsub",       title:"ยกเลิกบริการเสริมและ SMS กวนใจ",
+    snippet:"โดนหักเงินจากบริการที่ไม่ได้สมัคร ยกเลิกบริการเสริมและ SMS กวนใจ",
+    kw:["ยกเลิก","บริการเสริม","sms"], concepts:["unsub"] },
+  { id:"home",        title:"ติดตั้งเน็ตบ้าน AIS Fibre",
+    snippet:"สมัครและนัดติดตั้งเน็ตบ้านไฟเบอร์ ตรวจพื้นที่ให้บริการ",
+    kw:["เน็ตบ้าน","ไฟเบอร์","ติดตั้ง"], concepts:["home_net"] },
+  { id:"roaming",     title:"เปิดโรมมิ่งใช้เน็ตและโทรเมื่อไปต่างประเทศ",
+    snippet:"ก่อนเดินทางต่างประเทศ เปิดแพ็กโรมมิ่งเพื่อใช้เน็ตและโทรได้",
+    kw:["โรมมิ่ง","ต่างประเทศ","เน็ต","โทร"], concepts:["roaming","data_pkg"] },
+];
+
+const CONCEPTS = [
+  { id:"social_app",  label:"โซเชียล/แอป",
+    triggers:["เฟส","เฟซ","facebook","fb","ไอจี","ig","instagram","อินสตา","ติ๊กต๊อก","tiktok","ไลน์","line","โซเชียล","social","ยูทูป","youtube","ทวิต","เล่นแอป","เล่นเกม"] },
+  { id:"data_pkg",    label:"เน็ต/แพ็กเกจ",
+    triggers:["เน็ตหมด","เน็ตช้า","เน็ตไม่พอ","ซื้อเน็ต","เติมเน็ต","แพ็ก","แพ็ค","ดาต้า","data","internet","อินเทอร์เน็ต","เน็ตแรง","เน็ต"] },
+  { id:"bill",        label:"บิล/ยอดเงิน",
+    triggers:["จ่าย","บิล","ยอด","ค่าบริการ","ค่าโทร","เท่าไหร่","เท่าไร","ค้างชำระ","ใบแจ้งหนี้","หนี้","ชำระ"] },
+  { id:"signal",      label:"สัญญาณ",
+    triggers:["สัญญาณ","โทรไม่ติด","โทรไม่ได้","สายหลุด","ไม่มีสัญญาณ","คลื่น","โทรออกไม่ได้"] },
+  { id:"fiveg",       label:"5G",
+    triggers:["5g","5 จี","ไฟว์จี"] },
+  { id:"mnp",         label:"ย้ายค่าย",
+    triggers:["ย้ายค่าย","ย้ายมา","เบอร์เดิม","ย้ายเครือข่าย","ย้ายซิม","ใช้เบอร์เดิม"] },
+  { id:"roaming",     label:"โรมมิ่ง/ต่างประเทศ",
+    triggers:["ต่างประเทศ","โรมมิ่ง","roaming","ไปเที่ยว","ญี่ปุ่น","เกาหลี","ยุโรป","ต่างแดน","เที่ยวเมืองนอก","บินไป"] },
+  { id:"topup_money", label:"เติมเงิน",
+    triggers:["เติมเงิน","เติมเบอร์","ท็อปอัพ","top up","เงินในซิม"] },
+  { id:"points",      label:"พอยท์/รางวัล",
+    triggers:["พอยท์","points","แต้ม","แลกของ","สะสมแต้ม","รางวัล","สิทธิพิเศษ"] },
+  { id:"apn",         label:"ตั้งค่าเน็ต",
+    triggers:["ตั้งค่าเน็ต","apn","ตั้งค่ามือถือ","เปลี่ยนเครื่อง"] },
+  { id:"unsub",       label:"ยกเลิกบริการ",
+    triggers:["ยกเลิก","ไม่ได้สมัคร","sms กวน","หักเงิน","บริการเสริม","คิดเงินแปลก"] },
+  { id:"home_net",    label:"เน็ตบ้าน",
+    triggers:["เน็ตบ้าน","ไฟเบอร์","fibre","fiber","wifi บ้าน","ติดตั้งเน็ต"] },
+];
+
+const PRESETS = [
+  "เล่นเฟสไม่ได้",
+  "จะบินไปญี่ปุ่นอาทิตย์หน้า",
+  "โดนหักเงินทั้งที่ไม่ได้สมัคร",
+  "เน็ตหมดกลางเดือน",
+  "อยากรู้ว่าเดือนนี้จ่ายเท่าไหร่",
+];
+
+const CONCEPT_LABEL = Object.fromEntries(CONCEPTS.map(c => [c.id, c.label]));
+const norm = s => s.toLowerCase().trim();
+const REDUCED = window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+
+function esc(s){
+  return s.replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
+}
+function escRe(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+
+function highlight(text, terms){
+  let out = esc(text);
+  const uniq = [...new Set(terms.map(norm))].filter(Boolean).sort((a,b) => b.length - a.length);
+  for(const t of uniq){
+    out = out.replace(new RegExp(escRe(esc(t)), "gi"), m => "<mark>" + m + "</mark>");
+  }
+  return out;
+}
+
+function detectConcepts(nq){
+  if(!nq) return [];
+  return CONCEPTS.filter(c => c.triggers.some(t => nq.includes(norm(t)))).map(c => c.id);
+}
+
+function searchKeyword(nq){
+  if(!nq) return [];
+  return DOCUMENTS
+    .map(d => ({ doc:d, matched:d.kw.filter(k => nq.includes(norm(k))) }))
+    .filter(r => r.matched.length > 0)
+    .map(r => ({ ...r, score:r.matched.length }))
+    .sort((a,b) => b.score - a.score);
+}
+
+function searchSemantic(nq){
+  if(!nq) return { detected:[], results:[] };
+  const detected = detectConcepts(nq);
+  const results = DOCUMENTS
+    .map(d => {
+      const lexical = d.kw.filter(k => nq.includes(norm(k)));
+      const shared = d.concepts.filter(c => detected.includes(c));
+      return { doc:d, lexical, shared, score: shared.length * 3 + lexical.length * 1 };
+    })
+    .filter(r => r.score > 0)
+    .sort((a,b) => b.score - a.score);
+  return { detected, results };
+}
+
+function resultCard(inner, reveal){
+  return '<article class="result' + (reveal ? ' reveal' : '') + '">' + inner + '</article>';
+}
+
+function renderKeyword(nq){
+  const box = document.getElementById("kwResults");
+  const rows = searchKeyword(nq);
+  if(!nq){ box.innerHTML = '<p class="sub">พิมพ์คำค้นเพื่อดูผลลัพธ์</p>'; return 0; }
+  if(rows.length === 0){
+    box.innerHTML = '<div class="empty reveal"><span class="big">🚫</span>'
+      + 'ไม่พบผลลัพธ์ — ไม่มีบทความที่มีตัวอักษรตรงกับคำค้นของคุณ</div>';
+    return 0;
+  }
+  box.innerHTML = rows.map(r =>
+    resultCard(
+      '<p class="rtitle">' + highlight(r.doc.title, r.matched) + '</p>'
+      + '<p class="rsnip">' + highlight(r.doc.snippet, r.matched) + '</p>', true)
+  ).join("");
+  return rows.length;
+}
+
+function renderSemantic(nq){
+  const box = document.getElementById("semResults");
+  const cbox = document.getElementById("semConcepts");
+  const { detected, results } = searchSemantic(nq);
+  cbox.innerHTML = "";
+  if(!nq){ box.innerHTML = '<p class="sub">พิมพ์คำค้นเพื่อดูผลลัพธ์</p>'; return 0; }
+  if(detected.length){
+    cbox.innerHTML = '<span class="cbadge head">เข้าใจว่าคุณหมายถึง</span>'
+      + detected.map(id => '<span class="cbadge">' + esc(CONCEPT_LABEL[id]) + '</span>').join("");
+  }
+  if(results.length === 0){
+    box.innerHTML = '<div class="empty reveal"><span class="big">🤔</span>'
+      + 'ยังจับความหมายไม่ได้ — ลองพิมพ์ให้เป็นประโยคดูนะ</div>';
+    return 0;
+  }
+  box.innerHTML = results.map(r => {
+    const tag = r.shared.length
+      ? '<div class="rtag"><span class="dot">●</span> ตรงกับความหมาย: '
+        + r.shared.map(id => esc(CONCEPT_LABEL[id])).join(", ") + '</div>'
+      : '<div class="rtag"><span class="dot">●</span> ตรงกับคำ: '
+        + r.lexical.map(esc).join(", ") + '</div>';
+    return resultCard(
+      '<p class="rtitle">' + esc(r.doc.title) + '</p>'
+      + '<p class="rsnip">' + esc(r.doc.snippet) + '</p>' + tag, true);
+  }).join("");
+  return results.length;
+}
+
+function animateCount(el, to){
+  const from = parseInt(el.textContent, 10) || 0;
+  if(REDUCED || from === to){ el.textContent = to; return; }
+  const steps = Math.abs(to - from), dur = 320;
+  const t0 = performance.now();
+  function tick(now){
+    const p = Math.min(1, (now - t0) / dur);
+    el.textContent = Math.round(from + (to - from) * p);
+    if(p < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+let activePreset = null;
+function run(raw){
+  const nq = norm(raw);
+  const kwN = renderKeyword(nq);
+  const semN = renderSemantic(nq);
+  animateCount(document.getElementById("scoreKw"), kwN);
+  animateCount(document.getElementById("scoreSem"), semN);
+  document.querySelectorAll(".chip").forEach(ch => {
+    ch.classList.toggle("active", ch.dataset.q === raw);
+  });
+}
+
+const input = document.getElementById("q");
+let debTimer = null;
+input.addEventListener("input", () => {
+  clearTimeout(debTimer);
+  debTimer = setTimeout(() => run(input.value), 200);
+});
+
+const chipsBox = document.getElementById("chips");
+chipsBox.innerHTML = PRESETS.map(p =>
+  '<button class="chip" type="button" data-q="' + esc(p) + '">' + esc(p) + '</button>'
+).join("");
+chipsBox.addEventListener("click", e => {
+  const btn = e.target.closest(".chip");
+  if(!btn) return;
+  input.value = btn.dataset.q;
+  run(btn.dataset.q);
+});
+
+run("");
+</script>
+</body>
+</html>
